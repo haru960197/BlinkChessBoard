@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Event Camera Calibration Board</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #808080; /* ボード外はグレー */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* スクロールバーを隠す */
+        }
+        canvas {
+            display: block;
+            /* タップ時のハイライトを無効化 */
+            -webkit-tap-highlight-color: transparent; 
+        }
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: red;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none; /* クリックを下のCanvasに透過させる */
+            text-shadow: 1px 1px 2px black;
+        }
+    </style>
+</head>
+<body>
+    <!-- フルスクリーン開始などのメッセージ表示用 -->
+    <div id="ui-layer">画面をタップしてフルスクリーン＆再生/停止</div>
+    
+    <canvas id="chessboard"></canvas>
+
+    <script>
+        const canvas = document.getElementById('chessboard');
+        const ctx = canvas.getContext('2d');
+        const uiLayer = document.getElementById('ui-layer');
+
+        // ==========================================
+        // キャリブレーション設定（ここでマス目の数や速度を調整）
+        // ==========================================
+        const COLS = 10;          // 横のマス目数
+        const ROWS = 7;           // 縦のマス目数
+        const BLINK_HZ = 10;      // 点滅周波数（Hz）
+        
+        // 状態管理変数
+        let isRunning = true;
+        let isInverted = false;
+        let lastTime = performance.now();
+        const intervalMs = 1000 / (BLINK_HZ * 2); // 白と黒が切り替わる間隔(ミリ秒)
+        let squareSize = 0;
+
+        // 画面サイズに合わせてチェスボードを最大化する関数
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // 画面に収まる最大の正方形サイズを計算
+            squareSize = Math.floor(Math.min(canvas.width / COLS, canvas.height / ROWS));
+            drawBoard();
+        }
+
+        // チェスボードを描画する関数
+        function drawBoard() {
+            // ボード全体の背景をクリア（外側の余白はCSSでグレーアウト）
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 画面中央に配置するためのオフセット計算
+            const offsetX = Math.floor((canvas.width - COLS * squareSize) / 2);
+            const offsetY = Math.floor((canvas.height - ROWS * squareSize) / 2);
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    // (行 + 列) が偶数か奇数かで白黒を判定
+                    let isBlack = (r + c) % 2 === 1;
+                    
+                    // 反転フラグが立っていれば色を逆にする
+                    if (isInverted) isBlack = !isBlack;
+
+                    // rgb()を使って完全に混じり気のない白黒を指定
+                    ctx.fillStyle = isBlack ? 'rgb(0,0,0)' : 'rgb(255,255,255)';
+                    ctx.fillRect(offsetX + c * squareSize, offsetY + r * squareSize, squareSize, squareSize);
+                }
+            }
+        }
+
+        // アニメーションループ（イベントカメラ用の高精度タイマー）
+        function loop(currentTime) {
+            if (!isRunning) {
+                requestAnimationFrame(loop);
+                return;
+            }
+
+            // 指定したインターバル（ミリ秒）が経過したら反転
+            if (currentTime - lastTime >= intervalMs) {
+                isInverted = !isInverted;
+                drawBoard();
+                
+                // 次の目標時間を設定（遅延の蓄積を防ぐ）
+                lastTime += intervalMs;
+                
+                // もしブラウザのタブが裏に回るなどで時間が飛びすぎた場合はリセット
+                if (currentTime - lastTime > intervalMs) {
+                    lastTime = currentTime;
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+
+        // ==========================================
+        // イベントリスナー（タップでフルスクリーン化）
+        // ==========================================
+        document.body.addEventListener('click', () => {
+            uiLayer.style.display = 'none'; // メッセージを隠す
+            
+            // フルスクリーンAPIの呼び出し（ブラウザUIを消して最大化）
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`フルスクリーン化エラー: ${err.message}`);
+                });
+            } else {
+                // 再生/停止のトグル
+                isRunning = !isRunning;
+            }
+        });
+
+        // 画面の回転やサイズ変更に対応
+        window.addEventListener('resize', resize);
+
+        // 初期化とループ開始
+        resize();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
