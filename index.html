@@ -10,10 +10,20 @@
             padding: 0;
             background-color: #808080; /* ボード外はグレー */
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: space-between;
+            align-items: stretch;
             height: 100vh;
             overflow: hidden; /* スクロールバーを隠す */
+            box-sizing: border-box;
+            padding: 20px;
+            gap: 20px;
+        }
+        #board-area {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         canvas {
             display: block;
@@ -31,37 +41,88 @@
             pointer-events: none; /* クリックを下のCanvasに透過させる */
             text-shadow: 1px 1px 2px black;
         }
+        #control-panel {
+            position: relative;
+            flex: 0 0 auto;
+            align-self: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-family: sans-serif;
+            z-index: 100;
+        }
+        #control-panel label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        #control-panel label:first-child {
+            margin-top: 0;
+        }
+        #control-panel input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        #control-panel .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            color: #666;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
     <!-- フルスクリーン開始などのメッセージ表示用 -->
     <div id="ui-layer">画面をタップしてフルスクリーン＆再生/停止</div>
     
-    <canvas id="chessboard"></canvas>
+    <div id="board-area">
+        <canvas id="chessboard"></canvas>
+    </div>
+
+    <!-- コントロールパネル -->
+    <div id="control-panel">
+        <label for="cols-input">COLS (横):
+            <input type="number" id="cols-input" min="1" max="20" value="7">
+        </label>
+        <label for="rows-input">ROWS (縦):
+            <input type="number" id="rows-input" min="1" max="20" value="5">
+        </label>
+        <label for="hz-input">BLINK_HZ:
+            <input type="number" id="hz-input" min="1" max="60" value="10" step="0.5">
+        </label>
+    </div>
 
     <script>
         const canvas = document.getElementById('chessboard');
         const ctx = canvas.getContext('2d');
         const uiLayer = document.getElementById('ui-layer');
+        const boardArea = document.getElementById('board-area');
 
         // ==========================================
-        // キャリブレーション設定（ここでマス目の数や速度を調整）
+        // キャリブレーション設定（画面上で編集可能）
         // ==========================================
-        const COLS = 7;          // 横のマス目数
-        const ROWS = 5;           // 縦のマス目数
-        const BLINK_HZ = 10;      // 点滅周波数（Hz）
+        let COLS = 7;          // 横のマス目数
+        let ROWS = 5;           // 縦のマス目数
+        let BLINK_HZ = 10;      // 点滅周波数（Hz）
         
         // 状態管理変数
         let isRunning = true;
         let isInverted = false;
         let lastTime = performance.now();
-        const intervalMs = 1000 / (BLINK_HZ * 2); // 白と黒が切り替わる間隔(ミリ秒)
+        let intervalMs = 1000 / (BLINK_HZ * 2); // 白と黒が切り替わる間隔(ミリ秒)
         let squareSize = 0;
 
         // 画面サイズに合わせてチェスボードを最大化する関数
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = boardArea.clientWidth;
+            canvas.height = boardArea.clientHeight;
             // 画面に収まる最大の正方形サイズを計算
             squareSize = Math.floor(Math.min(canvas.width / COLS, canvas.height / ROWS));
             drawBoard();
@@ -113,6 +174,34 @@
             }
             requestAnimationFrame(loop);
         }
+
+        // ==========================================
+        // コントロールパネルのイベントリスナー
+        // ==========================================
+        document.getElementById('cols-input').addEventListener('change', (e) => {
+            const newCols = Math.max(1, parseInt(e.target.value) || 7);
+            if (newCols !== COLS) {
+                COLS = newCols;
+                resize();
+            }
+        });
+
+        document.getElementById('rows-input').addEventListener('change', (e) => {
+            const newRows = Math.max(1, parseInt(e.target.value) || 5);
+            if (newRows !== ROWS) {
+                ROWS = newRows;
+                resize();
+            }
+        });
+
+        document.getElementById('hz-input').addEventListener('change', (e) => {
+            const newHz = Math.max(0.5, parseFloat(e.target.value) || 10);
+            if (newHz !== BLINK_HZ) {
+                BLINK_HZ = newHz;
+                intervalMs = 1000 / (BLINK_HZ * 2);
+                lastTime = performance.now();
+            }
+        });
 
         // ==========================================
         // イベントリスナー（タップでフルスクリーン化）
