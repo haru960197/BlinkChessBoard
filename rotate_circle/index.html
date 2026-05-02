@@ -14,7 +14,7 @@
 			--orbit-size: 240px;
 			--ball-size: 28px;
 			--speed: 90;
-			--ball-color: #000;
+			--ball-color: #fff;
 		}
 
 		* {
@@ -60,7 +60,7 @@
 
 		.stage {
 			position: relative;
-			width: min(72vw, 680px);
+			width: min(72vw, 1000px);
 			aspect-ratio: 1;
 			display: grid;
 			place-items: center;
@@ -124,6 +124,13 @@
 			gap: 10px;
 		}
 
+		.control-inputs {
+			display: grid;
+			grid-template-columns: 1fr 80px;
+			gap: 10px;
+			align-items: center;
+		}
+
 		.control-head {
 			display: flex;
 			justify-content: space-between;
@@ -143,6 +150,17 @@
 			border-radius: 999px;
 			background: #d0d0d0;
 			outline: none;
+		}
+
+		input[type="number"] {
+			width: 100%;
+			padding: 8px 10px;
+			border: 1px solid #999;
+			border-radius: 4px;
+			font: inherit;
+			color: #111;
+			background: #fff;
+			box-sizing: border-box;
 		}
 
 		input[type="range"]::-webkit-slider-thumb {
@@ -215,7 +233,10 @@
 					<span>丸のサイズ</span>
 					<span class="value"><span id="ballSizeValue">28</span></span>
 				</div>
-				<input id="ballSize" type="range" min="12" max="72" step="1" value="28" />
+				<div class="control-inputs">
+					<input id="ballSize" type="range" min="12" max="72" step="1" value="28" />
+					<input id="ballSizeNumber" type="number" min="12" max="72" step="1" value="28" />
+				</div>
 			</label>
 
 			<label class="control" for="orbitSize">
@@ -223,7 +244,10 @@
 					<span>円のサイズ</span>
 					<span class="value"><span id="orbitSizeValue">240</span></span>
 				</div>
-				<input id="orbitSize" type="range" min="100" max="420" step="1" value="240" />
+				<div class="control-inputs">
+					<input id="orbitSize" type="range" min="100" max="800" step="1" value="240" />
+					<input id="orbitSizeNumber" type="number" min="100" max="800" step="1" value="240" />
+				</div>
 			</label>
 
 			<label class="control" for="speed">
@@ -231,7 +255,10 @@
 					<span>速度</span>
 					<span class="value"><span id="speedValue">90</span></span>
 				</div>
-				<input id="speed" type="range" min="10" max="360" step="1" value="90" />
+				<div class="control-inputs">
+					<input id="speed" type="range" min="10" max="360" step="1" value="90" />
+					<input id="speedNumber" type="number" min="10" max="360" step="1" value="90" />
+				</div>
 			</label>
 
 			<div class="button-row">
@@ -247,8 +274,11 @@
 		const stage = document.getElementById("stage");
 
 		const ballSize = document.getElementById("ballSize");
+		const ballSizeNumber = document.getElementById("ballSizeNumber");
 		const orbitSize = document.getElementById("orbitSize");
+		const orbitSizeNumber = document.getElementById("orbitSizeNumber");
 		const speed = document.getElementById("speed");
+		const speedNumber = document.getElementById("speedNumber");
 
 		const ballSizeValue = document.getElementById("ballSizeValue");
 		const orbitSizeValue = document.getElementById("orbitSizeValue");
@@ -269,6 +299,10 @@
 			root.style.setProperty("--ball-size", `${ballDiameter}px`);
 			root.style.setProperty("--orbit-size", `${orbitDiameter}px`);
 			root.style.setProperty("--speed", speedValueNumber);
+
+			ballSizeNumber.value = ballDiameter;
+			orbitSizeNumber.value = orbitDiameter;
+			speedNumber.value = speedValueNumber;
 
 			ballSizeValue.textContent = ballDiameter;
 			orbitSizeValue.textContent = orbitDiameter;
@@ -305,12 +339,29 @@
 			updatePosition();
 		});
 
+		ballSizeNumber.addEventListener("input", () => {
+			ballSize.value = ballSizeNumber.value;
+			syncStyles();
+			updatePosition();
+		});
+
 		orbitSize.addEventListener("input", () => {
 			syncStyles();
 			updatePosition();
 		});
 
+		orbitSizeNumber.addEventListener("input", () => {
+			orbitSize.value = orbitSizeNumber.value;
+			syncStyles();
+			updatePosition();
+		});
+
 		speed.addEventListener("input", syncStyles);
+
+		speedNumber.addEventListener("input", () => {
+			speed.value = speedNumber.value;
+			syncStyles();
+		});
 
 		toggleBtn.addEventListener("click", () => {
 			running = !running;
