@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Rotating Circle Demo</title>
+	<style>
+		:root {
+			color-scheme: light;
+			--bg: #808080;
+			--panel: rgba(255, 255, 255, 0.92);
+			--panel-border: #c8c8c8;
+			--text: #222;
+			--orbit-size: 240px;
+			--ball-size: 28px;
+			--speed: 90;
+			--ball-color: #fff;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			margin: 0;
+			min-height: 100%;
+		}
+
+		body {
+			margin: 0;
+			font-family: sans-serif;
+			color: var(--text);
+			background: var(--bg);
+			overflow: hidden;
+		}
+
+		.app {
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			gap: 20px;
+			padding: 20px;
+			align-items: center;
+		}
+
+		.hero {
+			display: grid;
+			width: 100%;
+			align-content: center;
+		}
+
+		.stage-wrap {
+			display: grid;
+			place-items: center;
+			width: 100%;
+		}
+
+		.stage {
+			position: relative;
+			width: min(72vw, 1000px);
+			aspect-ratio: 1;
+			display: grid;
+			place-items: center;
+			border: 1px solid transparent;
+			overflow: hidden;
+		}
+
+		.orbit {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width: var(--orbit-size);
+			height: var(--orbit-size);
+			border-radius: 50%;
+			transform: translate(-50%, -50%);
+			border: 1px solid rgba(0, 0, 0, 0.35);
+		}
+
+		.ball {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width: var(--ball-size);
+			height: var(--ball-size);
+			margin-left: calc(var(--ball-size) / -2);
+			margin-top: calc(var(--ball-size) / -2);
+			border-radius: 50%;
+			background: var(--ball-color);
+			will-change: transform;
+		}
+
+		.center-dot {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width: 10px;
+			height: 10px;
+			margin-left: -5px;
+			margin-top: -5px;
+			border-radius: 50%;
+			background: var(--ball-color);
+		}
+
+		.controls {
+			position: fixed;
+			right: 20px;
+			top: 20px;
+			z-index: 10;
+			display: grid;
+			gap: 14px;
+			padding: 20px;
+			border-radius: 8px;
+			background: var(--panel);
+			border: 1px solid var(--panel-border);
+			min-width: 220px;
+			width: min(260px, calc(100vw - 40px));
+		}
+
+		.control {
+			display: grid;
+			gap: 10px;
+		}
+
+		.control-inputs {
+			display: grid;
+			grid-template-columns: 1fr 80px;
+			gap: 10px;
+			align-items: center;
+		}
+
+		.control-head {
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			gap: 12px;
+			font-size: 13px;
+		}
+
+		.value {
+			font-variant-numeric: tabular-nums;
+		}
+
+		input[type="range"] {
+			width: 100%;
+			appearance: none;
+			height: 10px;
+			border-radius: 999px;
+			background: #d0d0d0;
+			outline: none;
+		}
+
+		input[type="number"] {
+			width: 100%;
+			padding: 8px 10px;
+			border: 1px solid #999;
+			border-radius: 4px;
+			font: inherit;
+			color: #111;
+			background: #fff;
+			box-sizing: border-box;
+		}
+
+		input[type="range"]::-webkit-slider-thumb {
+			appearance: none;
+			width: 22px;
+			height: 22px;
+			border-radius: 50%;
+			background: #fff;
+			border: 1px solid #666;
+			cursor: pointer;
+		}
+
+		input[type="range"]::-moz-range-thumb {
+			width: 22px;
+			height: 22px;
+			border-radius: 50%;
+			background: #fff;
+			border: 1px solid #666;
+			cursor: pointer;
+		}
+
+		.button-row {
+			display: flex;
+			gap: 12px;
+			flex-wrap: wrap;
+			padding-top: 6px;
+		}
+
+		button {
+			border: 1px solid #666;
+			border-radius: 4px;
+			padding: 12px 16px;
+			font: inherit;
+			color: #111;
+			background: #e6e6e6;
+			cursor: pointer;
+		}
+
+		button.secondary {
+			display: none;
+		}
+
+		@media (max-width: 900px) {
+			.stage {
+				width: min(92vw, 560px);
+			}
+
+			.controls {
+				right: 10px;
+				top: 10px;
+				width: min(240px, calc(100vw - 20px));
+			}
+		}
+	</style>
+</head>
+<body>
+	<main class="app">
+		<section class="hero">
+			<div class="stage-wrap">
+				<div class="stage" id="stage" aria-label="円運動のプレビュー">
+					<div class="center-dot" aria-hidden="true"></div>
+					<div class="ball" id="ball" aria-hidden="true"></div>
+				</div>
+			</div>
+		</section>
+
+		<aside class="controls" aria-label="パラメータ調整">
+			<label class="control" for="ballSize">
+				<div class="control-head">
+					<span>丸のサイズ</span>
+					<span class="value"><span id="ballSizeValue">28</span></span>
+				</div>
+				<div class="control-inputs">
+					<input id="ballSize" type="range" min="12" max="72" step="1" value="28" />
+					<input id="ballSizeNumber" type="number" min="12" max="72" step="1" value="28" />
+				</div>
+			</label>
+
+			<label class="control" for="orbitSize">
+				<div class="control-head">
+					<span>円のサイズ</span>
+					<span class="value"><span id="orbitSizeValue">240</span></span>
+				</div>
+				<div class="control-inputs">
+					<input id="orbitSize" type="range" min="100" max="800" step="1" value="240" />
+					<input id="orbitSizeNumber" type="number" min="100" max="800" step="1" value="240" />
+				</div>
+			</label>
+
+			<label class="control" for="speed">
+				<div class="control-head">
+					<span>速度</span>
+					<span class="value"><span id="speedValue">90</span></span>
+				</div>
+				<div class="control-inputs">
+					<input id="speed" type="range" min="10" max="360" step="1" value="90" />
+					<input id="speedNumber" type="number" min="10" max="360" step="1" value="90" />
+				</div>
+			</label>
+
+			<div class="button-row">
+				<button id="toggleBtn" type="button">一時停止</button>
+				<button id="resetBtn" type="button" class="secondary">位置をリセット</button>
+			</div>
+		</aside>
+	</main>
+
+	<script>
+		const root = document.documentElement;
+		const ball = document.getElementById("ball");
+		const stage = document.getElementById("stage");
+
+		const ballSize = document.getElementById("ballSize");
+		const ballSizeNumber = document.getElementById("ballSizeNumber");
+		const orbitSize = document.getElementById("orbitSize");
+		const orbitSizeNumber = document.getElementById("orbitSizeNumber");
+		const speed = document.getElementById("speed");
+		const speedNumber = document.getElementById("speedNumber");
+
+		const ballSizeValue = document.getElementById("ballSizeValue");
+		const orbitSizeValue = document.getElementById("orbitSizeValue");
+		const speedValue = document.getElementById("speedValue");
+
+		const toggleBtn = document.getElementById("toggleBtn");
+		const resetBtn = document.getElementById("resetBtn");
+
+		let angle = 0;
+		let running = true;
+		let lastTime = performance.now();
+
+		function syncStyles() {
+			const ballDiameter = Number(ballSize.value);
+			const orbitDiameter = Number(orbitSize.value);
+			const speedValueNumber = Number(speed.value);
+
+			root.style.setProperty("--ball-size", `${ballDiameter}px`);
+			root.style.setProperty("--orbit-size", `${orbitDiameter}px`);
+			root.style.setProperty("--speed", speedValueNumber);
+
+			ballSizeNumber.value = ballDiameter;
+			orbitSizeNumber.value = orbitDiameter;
+			speedNumber.value = speedValueNumber;
+
+			ballSizeValue.textContent = ballDiameter;
+			orbitSizeValue.textContent = orbitDiameter;
+			speedValue.textContent = speedValueNumber;
+		}
+
+		function updatePosition() {
+			const stageRect = stage.getBoundingClientRect();
+			const orbitDiameter = Number(orbitSize.value);
+			const ballDiameter = Number(ballSize.value);
+			const radius = orbitDiameter / 2;
+			const centerX = stageRect.width / 2;
+			const centerY = stageRect.height / 2;
+			const x = centerX + radius * Math.cos(angle);
+			const y = centerY + radius * Math.sin(angle);
+
+			ball.style.transform = `translate(${x - centerX}px, ${y - centerY}px)`;
+		}
+
+		function animate(now) {
+			const dt = Math.min((now - lastTime) / 1000, 0.05);
+			lastTime = now;
+
+			if (running) {
+				angle += (Number(speed.value) * Math.PI * 2 * dt) / 360;
+			}
+
+			updatePosition();
+			requestAnimationFrame(animate);
+		}
+
+		ballSize.addEventListener("input", () => {
+			syncStyles();
+			updatePosition();
+		});
+
+		ballSizeNumber.addEventListener("input", () => {
+			ballSize.value = ballSizeNumber.value;
+			syncStyles();
+			updatePosition();
+		});
+
+		orbitSize.addEventListener("input", () => {
+			syncStyles();
+			updatePosition();
+		});
+
+		orbitSizeNumber.addEventListener("input", () => {
+			orbitSize.value = orbitSizeNumber.value;
+			syncStyles();
+			updatePosition();
+		});
+
+		speed.addEventListener("input", syncStyles);
+
+		speedNumber.addEventListener("input", () => {
+			speed.value = speedNumber.value;
+			syncStyles();
+		});
+
+		toggleBtn.addEventListener("click", () => {
+			running = !running;
+			toggleBtn.textContent = running ? "一時停止" : "再開";
+			lastTime = performance.now();
+		});
+
+		resetBtn.addEventListener("click", () => {
+			angle = 0;
+			updatePosition();
+		});
+
+		window.addEventListener("resize", () => {
+			syncStyles();
+			updatePosition();
+		});
+
+		syncStyles();
+		updatePosition();
+		requestAnimationFrame(animate);
+	</script>
+</body>
+</html>
